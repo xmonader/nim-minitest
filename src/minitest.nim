@@ -22,7 +22,7 @@ template check*(exp:untyped, failureMsg:string="failed", indent:uint=0): void =
 #   for i in 0..< exprs.len:
 #     echo("expr: " & exprs[i])
 
-macro suite*(exprs: untyped) : typed = 
+macro suite*(name:string, exprs: untyped) : typed = 
 # StmtList
 #   Call
 #     Ident ident"suiteName"
@@ -37,15 +37,15 @@ macro suite*(exprs: untyped) : typed =
 #         IntLit 2
 #       IntLit 3
   var result = newStmtList()
+  let equline = newCall("repeat", newStrLitNode("="), newIntLitNode(50))
+  let writeEquline = newCall("echo", equline)
+  add(result, writeEquline, newCall("echo", name))
+  add(result, writeEquline)
+  
   for i in 0..<exprs.len:
-    var exp = exprs[i].copy()
+    var exp = exprs[i]
     let expKind = exp.kind
     case expKind
-    of nnkStrLit:
-      # suite name
-      let equline = newCall("repeat", newStrLitNode("="), newIntLitNode(50))
-      let writeEquline = newCall("echo", equline)
-      add(result, writeEquline, newCall("echo", exp), writeEquline)
     of nnkCall:
       case exp[0].kind
       of nnkIdent:
@@ -56,7 +56,7 @@ macro suite*(exprs: untyped) : typed =
           checkWithIndent.add(newIntLitNode(1))
           add(result, checkWithIndent)
       else:
-        discard
+        add(result, exp) 
     else:
       discard
         
@@ -66,13 +66,11 @@ when isMainModule:
   check(3==1+2)
   check(6+5*2 == 16)
   
-  suite:
-    "Arith"
+  suite "Arith":
     check(1+2==3)
     check(3+2==5)
 
-  suite:
-    "Strs"
+  suite "Strs":
     check("HELLO".toLowerAscii() == "hello")
     check("".isNilOrEmpty() == true)
 
